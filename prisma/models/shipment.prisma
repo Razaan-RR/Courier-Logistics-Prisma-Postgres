@@ -1,0 +1,49 @@
+enum ShipmentStatus {
+  PENDING_PAYMENT
+  PAID
+  READY_FOR_ASSIGNMENT
+  ASSIGNED
+  COURIER_ACCEPTED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  DELIVERY_FAILED
+  RETURNED
+  CANCELLED
+}
+
+model Shipment {
+  id                String                  @id @default(uuid())
+  trackingNumber    String                  @unique
+  customerId        String
+  pickupAddressId   String
+  deliveryAddressId String
+  recipientName     String
+  recipientPhone    String
+  packageType       String
+  description       String?
+  weight            Decimal                 @db.Decimal(10, 2)
+  length            Decimal?                @db.Decimal(10, 2)
+  width             Decimal?                @db.Decimal(10, 2)
+  height            Decimal?                @db.Decimal(10, 2)
+  deliveryCharge    Decimal                 @db.Decimal(10, 2)
+  status            ShipmentStatus          @default(PENDING_PAYMENT)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  deletedAt         DateTime?
+
+  customer          User                    @relation("CustomerShipments", fields: [customerId], references: [id])
+  pickupAddress     Address                 @relation("PickupAddress", fields: [pickupAddressId], references: [id])
+  deliveryAddress   Address                 @relation("DeliveryAddress", fields: [deliveryAddressId], references: [id])
+  assignments       DeliveryAssignment[]
+  statusHistories   ShipmentStatusHistory[]
+  payments          Payment[]
+
+  @@index([customerId])
+  @@index([pickupAddressId])
+  @@index([deliveryAddressId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([deletedAt])
+}

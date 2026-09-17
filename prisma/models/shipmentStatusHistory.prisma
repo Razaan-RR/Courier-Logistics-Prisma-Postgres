@@ -1,0 +1,14 @@
+model ShipmentStatusHistory {
+  id          String         @id @default(uuid())
+  shipmentId  String
+  changedById String
+  status      ShipmentStatus
+  note        String?
+  createdAt   DateTime       @default(now())
+
+  shipment    Shipment       @relation(fields: [shipmentId], references: [id])
+  changedBy   User           @relation(fields: [changedById], references: [id])
+
+  @@index([shipmentId, createdAt])
+  @@index([changedById])
+}

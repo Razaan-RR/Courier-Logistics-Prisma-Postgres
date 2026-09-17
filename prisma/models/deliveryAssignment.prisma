@@ -1,0 +1,29 @@
+enum AssignmentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+model DeliveryAssignment {
+  id           String           @id @default(uuid())
+  shipmentId   String
+  courierId    String
+  assignedById String
+  status       AssignmentStatus @default(PENDING)
+  assignedAt   DateTime         @default(now())
+  acceptedAt   DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  shipment     Shipment         @relation(fields: [shipmentId], references: [id])
+  courier      User             @relation("CourierAssignments", fields: [courierId], references: [id])
+  assignedBy   User             @relation("AssignedBy", fields: [assignedById], references: [id])
+
+  @@index([shipmentId])
+  @@index([courierId])
+  @@index([assignedById])
+  @@index([status])
+}

@@ -1,0 +1,33 @@
+enum UserRole {
+  CUSTOMER
+  COURIER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  id                 String               @id @default(uuid())
+  name               String
+  email              String               @unique
+  phone              String               @unique
+  password           String
+  role               UserRole             @default(CUSTOMER)
+  status             UserStatus           @default(ACTIVE)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  deletedAt          DateTime?
+
+  addresses          Address[]
+  shipments          Shipment[]           @relation("CustomerShipments")
+  courierAssignments DeliveryAssignment[] @relation("CourierAssignments")
+  assignedShipments  DeliveryAssignment[] @relation("AssignedBy")
+  statusHistories    ShipmentStatusHistory[]
+  payments           Payment[]
+  refreshTokens      RefreshToken[]
+  auditLogs          AuditLog[]           @relation("ActorAuditLogs")
+}
