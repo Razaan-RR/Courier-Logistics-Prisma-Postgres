@@ -39,7 +39,7 @@ export const updateShipmentSchema = z.object({
 })
 
 export const shipmentIdSchema = z.object({
-  body: z.object({}),
+  body: z.any(),
   params: z.object({
     id: z.string().uuid(),
   }),
@@ -47,7 +47,7 @@ export const shipmentIdSchema = z.object({
 })
 
 export const shipmentListSchema = z.object({
-  body: z.object({}),
+  body: z.any(),
   params: z.object({}),
   query: z.object({
     page: z.coerce.number().int().min(1).default(1),
@@ -57,5 +57,15 @@ export const shipmentListSchema = z.object({
       .enum(['createdAt', 'updatedAt', 'deliveryCharge', 'weight'])
       .default('createdAt'),
     sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  }),
+})
+
+export const shipmentSearchSchema = z.object({
+  body: z.any(),
+  params: z.object({}),
+  query: z.object({
+    q: z.string().min(1).max(100),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
   }),
 })

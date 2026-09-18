@@ -3,9 +3,18 @@ import { ZodType } from 'zod'
 import { errorResponse } from '../utils/response.js'
 
 type ValidationData = {
-  body: Request['body']
-  params: Request['params']
-  query: Request['query']
+  body: unknown
+  params: unknown
+  query: unknown
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      validatedQuery?: Record<string, unknown>
+      validatedParams?: Record<string, unknown>
+    }
+  }
 }
 
 export const validate = (schema: ZodType<ValidationData>) => {
@@ -21,7 +30,10 @@ export const validate = (schema: ZodType<ValidationData>) => {
     }
 
     req.body = result.data.body
-    req.params = result.data.params
+
+    req.validatedParams = result.data.params as Record<string, unknown>
+
+    req.validatedQuery = result.data.query as Record<string, unknown>
 
     next()
   }
