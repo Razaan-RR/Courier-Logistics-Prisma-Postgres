@@ -9,5 +9,10 @@ export const errorHandler = (
 ) => {
   console.error(err)
 
-  return errorResponse(res, 'Something went wrong', [], 500)
+  return errorResponse(
+    res,
+    err instanceof Error ? err.message : 'Something went wrong',
+    [],
+    500,
+  )
 }

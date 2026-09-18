@@ -15,6 +15,7 @@ import {
   logoutSchema,
   changePasswordSchema,
 } from '../schemas/auth.schema.js'
+import { successResponse } from "../utils/response.js";
 
 const router = Router()
 
@@ -32,5 +33,12 @@ router.post(
   validate(changePasswordSchema),
   updatePassword,
 )
+
+router.get('/me', authenticate, (req, res) => {
+  return successResponse(res, 'Authenticated user', {
+    userId: req.user!.id,
+    role: req.user!.role,
+  })
+})
 
 export default router

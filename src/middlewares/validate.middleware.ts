@@ -2,7 +2,13 @@ import { NextFunction, Request, Response } from 'express'
 import { ZodType } from 'zod'
 import { errorResponse } from '../utils/response.js'
 
-export const validate = (schema: ZodType) => {
+type ValidationData = {
+  body: Request['body']
+  params: Request['params']
+  query: Request['query']
+}
+
+export const validate = (schema: ZodType<ValidationData>) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse({
       body: req.body,
@@ -14,15 +20,8 @@ export const validate = (schema: ZodType) => {
       return errorResponse(res, 'Validation failed', result.error.issues, 400)
     }
 
-    const data = result.data as {
-      body: Request['body']
-      params: Request['params']
-      query: Request['query']
-    }
-
-    req.body = data.body
-    req.params = data.params
-    req.query = data.query
+    req.body = result.data.body
+    req.params = result.data.params
 
     next()
   }
