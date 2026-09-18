@@ -1,13 +1,16 @@
-import { Router } from "express";
+import { Router } from 'express'
+import authRouter from './auth.routes.js'
 
-const router = Router();
+const router = Router()
 
-router.get("/health", (_req, res) => {
+router.get('/health', (_req, res) => {
   res.status(200).json({
     success: true,
-    message: "API is healthy",
+    message: 'API is healthy',
     data: {},
-  });
-});
+  })
+})
 
-export default router;
+router.use('/auth', authRouter)
+
+export default router
