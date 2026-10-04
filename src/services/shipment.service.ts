@@ -762,3 +762,62 @@ export const deliverShipment = async (
 
   return result
 }
+
+export const markShipmentDeliveryFailed = async (
+  shipmentId: string,
+  courierId: string,
+) => {
+  const assignment = await prisma.deliveryAssignment.findFirst({
+    where: {
+      shipmentId,
+      courierId,
+      status: 'ACCEPTED',
+      shipment: { deletedAt: null },
+    },
+    include: { shipment: true },
+  })
+
+  if (!assignment) {
+    throw new Error('Accepted shipment assignment not found')
+  }
+
+  if (assignment.shipment.status !== 'OUT_FOR_DELIVERY') {
+    throw new Error(
+      'Only shipments out for delivery can be marked as delivery failed',
+    )
+  }
+
+  return updateShipmentStatus(
+    shipmentId,
+    'DELIVERY_FAILED',
+    courierId,
+    'Delivery failed',
+  )
+}
+
+export const returnShipment = async (shipmentId: string, courierId: string) => {
+  const assignment = await prisma.deliveryAssignment.findFirst({
+    where: {
+      shipmentId,
+      courierId,
+      status: 'ACCEPTED',
+      shipment: { deletedAt: null },
+    },
+    include: { shipment: true },
+  })
+
+  if (!assignment) {
+    throw new Error('Accepted shipment assignment not found')
+  }
+
+  if (assignment.shipment.status !== 'DELIVERY_FAILED') {
+    throw new Error('Only delivery-failed shipments can be marked as returned')
+  }
+
+  return updateShipmentStatus(
+    shipmentId,
+    'RETURNED',
+    courierId,
+    'Shipment returned after delivery failure',
+  )
+}

@@ -19,6 +19,8 @@ import {
   markInTransit,
   markOutForDelivery,
   deliver,
+  deliveryFailed,
+  returnShipmentController,
 } from '../controllers/shipment.controller.js'
 import {
   createShipmentSchema,
@@ -119,6 +121,22 @@ router.post(
   authorize(UserRole.COURIER),
   validate(shipmentIdSchema),
   deliver,
+)
+
+router.post(
+  '/:id/delivery-failed',
+  authenticate,
+  authorize(UserRole.COURIER),
+  validate(shipmentIdSchema),
+  deliveryFailed,
+)
+
+router.post(
+  '/:id/return',
+  authenticate,
+  authorize(UserRole.COURIER),
+  validate(shipmentIdSchema),
+  returnShipmentController,
 )
 
 router.get(

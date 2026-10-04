@@ -16,6 +16,8 @@ import {
   markShipmentInTransit,
   markShipmentOutForDelivery,
   deliverShipment,
+  markShipmentDeliveryFailed,
+  returnShipment,
 } from '../services/shipment.service.js'
 import { errorResponse, successResponse } from '../utils/response.js'
 
@@ -335,19 +337,34 @@ export const markOutForDelivery = async (req: Request, res: Response) => {
   }
 }
 
-export const deliver = async (
-  req: Request,
-  res: Response,
-) => {
+export const deliver = async (req: Request, res: Response) => {
   try {
     const shipment = await deliverShipment(
       req.params.id as string,
       req.user!.id,
     )
 
+    return successResponse(res, 'Shipment delivered successfully', shipment)
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error ? error.message : 'Failed to deliver shipment',
+      [],
+      400,
+    )
+  }
+}
+
+export const deliveryFailed = async (req: Request, res: Response) => {
+  try {
+    const shipment = await markShipmentDeliveryFailed(
+      req.params.id as string,
+      req.user!.id,
+    )
+
     return successResponse(
       res,
-      'Shipment delivered successfully',
+      'Shipment marked as delivery failed successfully',
       shipment,
     )
   } catch (error) {
@@ -355,7 +372,22 @@ export const deliver = async (
       res,
       error instanceof Error
         ? error.message
-        : 'Failed to deliver shipment',
+        : 'Failed to mark shipment as delivery failed',
+      [],
+      400,
+    )
+  }
+}
+
+export const returnShipmentController = async (req: Request, res: Response) => {
+  try {
+    const shipment = await returnShipment(req.params.id as string, req.user!.id)
+
+    return successResponse(res, 'Shipment returned successfully', shipment)
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error ? error.message : 'Failed to return shipment',
       [],
       400,
     )
