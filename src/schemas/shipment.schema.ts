@@ -77,3 +77,17 @@ export const assignShipmentSchema = z.object({
   params: z.object({}),
   query: z.object({}),
 })
+
+export const adminShipmentListSchema = z.object({
+  body: z.any(),
+  params: z.object({}),
+  query: z.object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+    status: z.string().optional(),
+    sortBy: z
+      .enum(['createdAt', 'updatedAt', 'deliveryCharge', 'weight'])
+      .default('createdAt'),
+    sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  }),
+})

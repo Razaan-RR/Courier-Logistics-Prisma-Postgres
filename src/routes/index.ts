@@ -3,6 +3,7 @@ import authRouter from './auth.routes.js'
 import userRouter from './user.routes.js'
 import shipmentRouter from "./shipment.routes.js";
 import addressRouter from "./address.routes.js";
+import adminShipmentRouter from './admin-shipment.routes.js'
 
 const router = Router()
 
@@ -18,5 +19,8 @@ router.use('/auth', authRouter)
 router.use('/users', userRouter)
 router.use("/shipments", shipmentRouter);
 router.use("/addresses", addressRouter);
+router.use('/shipments', shipmentRouter)
+router.use('/admin', adminShipmentRouter)
+
 
 export default router
