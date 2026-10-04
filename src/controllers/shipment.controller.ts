@@ -13,6 +13,9 @@ import {
   makeShipmentReadyForAssignment,
   acceptShipmentAssignment,
   pickupShipment,
+  markShipmentInTransit,
+  markShipmentOutForDelivery,
+  deliverShipment,
 } from '../services/shipment.service.js'
 import { errorResponse, successResponse } from '../utils/response.js'
 
@@ -225,21 +228,14 @@ export const markAsPaidForTesting = async (req: Request, res: Response) => {
   }
 }
 
-export const makeReadyForAssignment = async (
-  req: Request,
-  res: Response,
-) => {
+export const makeReadyForAssignment = async (req: Request, res: Response) => {
   try {
     const shipment = await makeShipmentReadyForAssignment(
       req.params.id as string,
       req.user!.id,
     )
 
-    return successResponse(
-      res,
-      'Shipment is ready for assignment',
-      shipment,
-    )
+    return successResponse(res, 'Shipment is ready for assignment', shipment)
   } catch (error) {
     return errorResponse(
       res,
@@ -252,10 +248,7 @@ export const makeReadyForAssignment = async (
   }
 }
 
-export const acceptAssignment = async (
-  req: Request,
-  res: Response,
-) => {
+export const acceptAssignment = async (req: Request, res: Response) => {
   try {
     const assignment = await acceptShipmentAssignment(
       req.params.id as string,
@@ -279,19 +272,31 @@ export const acceptAssignment = async (
   }
 }
 
-export const pickup = async (
-  req: Request,
-  res: Response,
-) => {
+export const pickup = async (req: Request, res: Response) => {
   try {
-    const shipment = await pickupShipment(
+    const shipment = await pickupShipment(req.params.id as string, req.user!.id)
+
+    return successResponse(res, 'Shipment picked up successfully', shipment)
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error ? error.message : 'Failed to pick up shipment',
+      [],
+      400,
+    )
+  }
+}
+
+export const markInTransit = async (req: Request, res: Response) => {
+  try {
+    const shipment = await markShipmentInTransit(
       req.params.id as string,
       req.user!.id,
     )
 
     return successResponse(
       res,
-      'Shipment picked up successfully',
+      'Shipment marked as in transit successfully',
       shipment,
     )
   } catch (error) {
@@ -299,7 +304,58 @@ export const pickup = async (
       res,
       error instanceof Error
         ? error.message
-        : 'Failed to pick up shipment',
+        : 'Failed to mark shipment as in transit',
+      [],
+      400,
+    )
+  }
+}
+
+export const markOutForDelivery = async (req: Request, res: Response) => {
+  try {
+    const shipment = await markShipmentOutForDelivery(
+      req.params.id as string,
+      req.user!.id,
+    )
+
+    return successResponse(
+      res,
+      'Shipment marked as out for delivery successfully',
+      shipment,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error
+        ? error.message
+        : 'Failed to mark shipment as out for delivery',
+      [],
+      400,
+    )
+  }
+}
+
+export const deliver = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const shipment = await deliverShipment(
+      req.params.id as string,
+      req.user!.id,
+    )
+
+    return successResponse(
+      res,
+      'Shipment delivered successfully',
+      shipment,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error
+        ? error.message
+        : 'Failed to deliver shipment',
       [],
       400,
     )

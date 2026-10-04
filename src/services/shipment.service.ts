@@ -631,3 +631,134 @@ export const pickupShipment = async (shipmentId: string, courierId: string) => {
     'Shipment picked up by courier',
   )
 }
+
+export const markShipmentInTransit = async (
+  shipmentId: string,
+  courierId: string,
+) => {
+  const assignment = await prisma.deliveryAssignment.findFirst({
+    where: {
+      shipmentId,
+      courierId,
+      status: 'ACCEPTED',
+      shipment: {
+        deletedAt: null,
+      },
+    },
+    include: {
+      shipment: true,
+    },
+  })
+
+  if (!assignment) {
+    throw new Error('Accepted shipment assignment not found')
+  }
+
+  if (assignment.shipment.status !== 'PICKED_UP') {
+    throw new Error('Only picked-up shipments can be marked as in transit')
+  }
+
+  return updateShipmentStatus(
+    shipmentId,
+    'IN_TRANSIT',
+    courierId,
+    'Shipment is now in transit',
+  )
+}
+
+export const markShipmentOutForDelivery = async (
+  shipmentId: string,
+  courierId: string,
+) => {
+  const assignment = await prisma.deliveryAssignment.findFirst({
+    where: {
+      shipmentId,
+      courierId,
+      status: 'ACCEPTED',
+      shipment: {
+        deletedAt: null,
+      },
+    },
+    include: {
+      shipment: true,
+    },
+  })
+
+  if (!assignment) {
+    throw new Error('Accepted shipment assignment not found')
+  }
+
+  if (assignment.shipment.status !== 'IN_TRANSIT') {
+    throw new Error('Only shipments in transit can be marked out for delivery')
+  }
+
+  return updateShipmentStatus(
+    shipmentId,
+    'OUT_FOR_DELIVERY',
+    courierId,
+    'Shipment is out for delivery',
+  )
+}
+
+export const deliverShipment = async (
+  shipmentId: string,
+  courierId: string,
+) => {
+  const assignment = await prisma.deliveryAssignment.findFirst({
+    where: {
+      shipmentId,
+      courierId,
+      status: 'ACCEPTED',
+      shipment: {
+        deletedAt: null,
+      },
+    },
+    include: {
+      shipment: true,
+    },
+  })
+
+  if (!assignment) {
+    throw new Error('Accepted shipment assignment not found')
+  }
+
+  if (assignment.shipment.status !== 'OUT_FOR_DELIVERY') {
+    throw new Error(
+      'Only shipments out for delivery can be marked as delivered',
+    )
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedShipment = await tx.shipment.update({
+      where: {
+        id: shipmentId,
+      },
+      data: {
+        status: 'DELIVERED',
+      },
+    })
+
+    await tx.deliveryAssignment.update({
+      where: {
+        id: assignment.id,
+      },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+      },
+    })
+
+    await tx.shipmentStatusHistory.create({
+      data: {
+        shipmentId,
+        changedById: courierId,
+        status: 'DELIVERED',
+        note: 'Shipment delivered successfully',
+      },
+    })
+
+    return updatedShipment
+  })
+
+  return result
+}
