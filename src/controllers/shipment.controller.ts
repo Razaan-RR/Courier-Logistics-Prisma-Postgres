@@ -11,6 +11,8 @@ import {
   assignShipmentToCourier,
   markShipmentAsPaidForTesting,
   makeShipmentReadyForAssignment,
+  acceptShipmentAssignment,
+  pickupShipment,
 } from '../services/shipment.service.js'
 import { errorResponse, successResponse } from '../utils/response.js'
 
@@ -244,6 +246,60 @@ export const makeReadyForAssignment = async (
       error instanceof Error
         ? error.message
         : 'Failed to make shipment ready for assignment',
+      [],
+      400,
+    )
+  }
+}
+
+export const acceptAssignment = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const assignment = await acceptShipmentAssignment(
+      req.params.id as string,
+      req.user!.id,
+    )
+
+    return successResponse(
+      res,
+      'Shipment assignment accepted successfully',
+      assignment,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error
+        ? error.message
+        : 'Failed to accept shipment assignment',
+      [],
+      400,
+    )
+  }
+}
+
+export const pickup = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const shipment = await pickupShipment(
+      req.params.id as string,
+      req.user!.id,
+    )
+
+    return successResponse(
+      res,
+      'Shipment picked up successfully',
+      shipment,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error
+        ? error.message
+        : 'Failed to pick up shipment',
       [],
       400,
     )

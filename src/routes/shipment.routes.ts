@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { authenticate } from '../middlewares/auth.middleware.js'
 import { authorize } from '../middlewares/role.middleware.js'
-import { validate } from '../middlewares/validate.middleware.js'
+import { validate, validate, validate } from '../middlewares/validate.middleware.js'
 import {
   create,
   getAll,
@@ -14,6 +14,8 @@ import {
   assign,
   markAsPaidForTesting,
   makeReadyForAssignment,
+  acceptAssignment,
+  pickup,
 } from '../controllers/shipment.controller.js'
 import {
   createShipmentSchema,
@@ -74,6 +76,22 @@ router.post(
   validate(shipmentIdSchema),
   validate(assignShipmentSchema),
   assign,
+)
+
+router.post(
+  '/:id/accept',
+  authenticate,
+  authorize(UserRole.COURIER),
+  validate(shipmentIdSchema),
+  acceptAssignment,
+)
+
+router.post(
+  '/:id/pickup',
+  authenticate,
+  authorize(UserRole.COURIER),
+  validate(shipmentIdSchema),
+  pickup,
 )
 
 router.get(

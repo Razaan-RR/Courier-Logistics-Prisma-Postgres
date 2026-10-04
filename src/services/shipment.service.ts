@@ -539,3 +539,95 @@ export const makeShipmentReadyForAssignment = async (
     'Shipment marked ready for courier assignment',
   )
 }
+
+export const acceptShipmentAssignment = async (
+  shipmentId: string,
+  courierId: string,
+) => {
+  const assignment = await prisma.deliveryAssignment.findFirst({
+    where: {
+      shipmentId,
+      courierId,
+      status: 'PENDING',
+      shipment: {
+        deletedAt: null,
+      },
+    },
+    include: {
+      shipment: true,
+    },
+  })
+
+  if (!assignment) {
+    throw new Error('Pending shipment assignment not found')
+  }
+
+  if (assignment.shipment.status !== 'ASSIGNED') {
+    throw new Error('Only assigned shipments can be accepted by the courier')
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedAssignment = await tx.deliveryAssignment.update({
+      where: {
+        id: assignment.id,
+      },
+      data: {
+        status: 'ACCEPTED',
+        acceptedAt: new Date(),
+      },
+    })
+
+    await tx.shipment.update({
+      where: {
+        id: shipmentId,
+      },
+      data: {
+        status: 'COURIER_ACCEPTED',
+      },
+    })
+
+    await tx.shipmentStatusHistory.create({
+      data: {
+        shipmentId,
+        changedById: courierId,
+        status: 'COURIER_ACCEPTED',
+        note: 'Shipment assignment accepted by courier',
+      },
+    })
+
+    return updatedAssignment
+  })
+
+  return result
+}
+
+export const pickupShipment = async (shipmentId: string, courierId: string) => {
+  const assignment = await prisma.deliveryAssignment.findFirst({
+    where: {
+      shipmentId,
+      courierId,
+      status: 'ACCEPTED',
+      shipment: {
+        deletedAt: null,
+      },
+    },
+    include: {
+      shipment: true,
+    },
+  })
+
+  if (!assignment) {
+    throw new Error('Accepted shipment assignment not found')
+  }
+
+  if (assignment.shipment.status !== 'COURIER_ACCEPTED') {
+    throw new Error('Only courier-accepted shipments can be picked up')
+  }
+
+  return updateShipmentStatus(
+    shipmentId,
+    'PICKED_UP',
+    courierId,
+    'Shipment picked up by courier',
+  )
+}

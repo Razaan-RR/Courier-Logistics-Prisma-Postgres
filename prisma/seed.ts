@@ -29,6 +29,41 @@ async function main() {
     },
   })
 
+  const courierPassword = 'Courier@123456'
+  const hashedCourierPassword = await bcrypt.hash(courierPassword, SALT_ROUNDS)
+
+  const courier = await prisma.user.upsert({
+    where: {
+      email: 'courier@courier.com',
+    },
+    update: {
+      name: 'Test Courier',
+      phone: '01700000002',
+      password: hashedCourierPassword,
+      role: 'COURIER',
+      status: 'ACTIVE',
+      deletedAt: null,
+    },
+    create: {
+      name: 'Test Courier',
+      email: 'courier@courier.com',
+      phone: '01700000002',
+      password: hashedCourierPassword,
+      role: 'COURIER',
+      status: 'ACTIVE',
+    },
+  })
+
+  console.log('Courier created successfully:')
+  console.log({
+    id: courier.id,
+    name: courier.name,
+    email: courier.email,
+    phone: courier.phone,
+    role: courier.role,
+    status: courier.status,
+  })
+  
   console.log('Admin created successfully:')
   console.log({
     id: admin.id,
