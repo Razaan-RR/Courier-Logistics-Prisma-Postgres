@@ -8,6 +8,9 @@ import {
   searchMyShipments,
   getMyShipmentHistory,
   cancelMyShipment,
+  assignShipmentToCourier,
+  markShipmentAsPaidForTesting,
+  makeShipmentReadyForAssignment,
 } from '../services/shipment.service.js'
 import { errorResponse, successResponse } from '../utils/response.js'
 
@@ -166,6 +169,81 @@ export const cancel = async (req: Request, res: Response) => {
     return errorResponse(
       res,
       error instanceof Error ? error.message : 'Failed to cancel shipment',
+      [],
+      400,
+    )
+  }
+}
+
+export const assign = async (req: Request, res: Response) => {
+  try {
+    const assignment = await assignShipmentToCourier(
+      req.params.id as string,
+      req.body.courierId,
+      req.user!.id,
+    )
+
+    return successResponse(
+      res,
+      'Shipment assigned to courier successfully',
+      assignment,
+      201,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error ? error.message : 'Failed to assign shipment',
+      [],
+      400,
+    )
+  }
+}
+
+export const markAsPaidForTesting = async (req: Request, res: Response) => {
+  try {
+    const shipment = await markShipmentAsPaidForTesting(
+      req.params.id as string,
+      req.user!.id,
+    )
+
+    return successResponse(
+      res,
+      'Shipment marked as paid successfully',
+      shipment,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error
+        ? error.message
+        : 'Failed to mark shipment as paid',
+      [],
+      400,
+    )
+  }
+}
+
+export const makeReadyForAssignment = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const shipment = await makeShipmentReadyForAssignment(
+      req.params.id as string,
+      req.user!.id,
+    )
+
+    return successResponse(
+      res,
+      'Shipment is ready for assignment',
+      shipment,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error
+        ? error.message
+        : 'Failed to make shipment ready for assignment',
       [],
       400,
     )

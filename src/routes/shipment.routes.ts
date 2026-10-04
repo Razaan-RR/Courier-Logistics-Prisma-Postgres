@@ -11,6 +11,9 @@ import {
   search,
   getHistory,
   cancel,
+  assign,
+  markAsPaidForTesting,
+  makeReadyForAssignment,
 } from '../controllers/shipment.controller.js'
 import {
   createShipmentSchema,
@@ -18,6 +21,7 @@ import {
   shipmentListSchema,
   shipmentSearchSchema,
   updateShipmentSchema,
+  assignShipmentSchema,
 } from '../schemas/shipment.schema.js'
 import { UserRole } from '../generated/prisma/client.js'
 
@@ -45,6 +49,31 @@ router.get(
   authorize(UserRole.CUSTOMER),
   validate(shipmentSearchSchema),
   search,
+)
+
+router.post(
+  '/:id/mark-paid-test',
+  authenticate,
+  authorize(UserRole.ADMIN),
+  validate(shipmentIdSchema),
+  markAsPaidForTesting,
+)
+
+router.post(
+  '/:id/ready-for-assignment',
+  authenticate,
+  authorize(UserRole.ADMIN),
+  validate(shipmentIdSchema),
+  makeReadyForAssignment,
+)
+
+router.post(
+  '/:id/assign',
+  authenticate,
+  authorize(UserRole.ADMIN),
+  validate(shipmentIdSchema),
+  validate(assignShipmentSchema),
+  assign,
 )
 
 router.get(

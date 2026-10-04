@@ -14,6 +14,78 @@ const calculateDeliveryCharge = (weight: number) => {
   return BASE_CHARGE + weight * CHARGE_PER_KG
 }
 
+const allowedStatusTransitions: Record<string, string[]> = {
+  PENDING_PAYMENT: ['PAID', 'CANCELLED'],
+  PAID: ['READY_FOR_ASSIGNMENT', 'CANCELLED'],
+  READY_FOR_ASSIGNMENT: ['ASSIGNED', 'CANCELLED'],
+  ASSIGNED: ['COURIER_ACCEPTED'],
+  COURIER_ACCEPTED: ['PICKED_UP'],
+  PICKED_UP: ['IN_TRANSIT'],
+  IN_TRANSIT: ['OUT_FOR_DELIVERY'],
+  OUT_FOR_DELIVERY: ['DELIVERED', 'DELIVERY_FAILED'],
+  DELIVERY_FAILED: ['RETURNED'],
+  DELIVERED: [],
+  RETURNED: [],
+  CANCELLED: [],
+}
+
+export const validateShipmentStatusTransition = (
+  currentStatus: string,
+  nextStatus: string,
+) => {
+  const allowedStatuses = allowedStatusTransitions[currentStatus] ?? []
+
+  if (!allowedStatuses.includes(nextStatus)) {
+    throw new Error(
+      `Invalid shipment status transition: ${currentStatus} → ${nextStatus}`,
+    )
+  }
+
+  return true
+}
+
+export const updateShipmentStatus = async (
+  shipmentId: string,
+  nextStatus: string,
+  changedById: string,
+  note?: string,
+) => {
+  const shipment = await prisma.shipment.findFirst({
+    where: {
+      id: shipmentId,
+      deletedAt: null,
+    },
+  })
+
+  if (!shipment) {
+    throw new Error('Shipment not found')
+  }
+
+  validateShipmentStatusTransition(shipment.status, nextStatus)
+
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedShipment = await tx.shipment.update({
+      where: { id: shipmentId },
+      data: {
+        status: nextStatus as any,
+      },
+    })
+
+    await tx.shipmentStatusHistory.create({
+      data: {
+        shipmentId,
+        changedById,
+        status: nextStatus as any,
+        note,
+      },
+    })
+
+    return updatedShipment
+  })
+
+  return result
+}
+
 export const createShipment = async (
   customerId: string,
   data: {
@@ -317,44 +389,153 @@ export const cancelMyShipment = async (
   shipmentId: string,
 ) => {
   const shipment = await prisma.shipment.findFirst({
-    where: {
-      id: shipmentId,
-      customerId,
-      deletedAt: null,
-    },
-  });
+    where: { id: shipmentId, customerId, deletedAt: null },
+  })
 
   if (!shipment) {
-    throw new Error("Shipment not found");
+    throw new Error('Shipment not found')
   }
 
-  if (shipment.status !== "PENDING_PAYMENT") {
+  return updateShipmentStatus(
+    shipmentId,
+    'CANCELLED',
+    customerId,
+    'Shipment cancelled by customer',
+  )
+}
+
+export const assignShipmentToCourier = async (
+  shipmentId: string,
+  courierId: string,
+  adminId: string,
+) => {
+  const shipment = await prisma.shipment.findFirst({
+    where: {
+      id: shipmentId,
+      deletedAt: null,
+    },
+  })
+
+  if (!shipment) {
+    throw new Error('Shipment not found')
+  }
+
+  if (shipment.status !== 'READY_FOR_ASSIGNMENT') {
     throw new Error(
-      "Shipment can only be cancelled before payment",
-    );
+      'Only shipments ready for assignment can be assigned to a courier',
+    )
+  }
+
+  const courier = await prisma.user.findFirst({
+    where: {
+      id: courierId,
+      role: 'COURIER',
+      status: 'ACTIVE',
+      deletedAt: null,
+    },
+  })
+
+  if (!courier) {
+    throw new Error('Active courier not found')
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const cancelledShipment = await tx.shipment.update({
-      where: {
-        id: shipmentId,
-      },
+    const assignment = await tx.deliveryAssignment.create({
       data: {
-        status: "CANCELLED",
+        shipmentId,
+        courierId,
+        assignedById: adminId,
+        status: 'PENDING',
       },
-    });
+    })
+
+    await tx.shipment.update({
+      where: { id: shipmentId },
+      data: {
+        status: 'ASSIGNED',
+      },
+    })
 
     await tx.shipmentStatusHistory.create({
       data: {
         shipmentId,
-        changedById: customerId,
-        status: "CANCELLED",
-        note: "Shipment cancelled by customer",
+        changedById: adminId,
+        status: 'ASSIGNED',
+        note: `Shipment assigned to courier ${courier.name}`,
       },
-    });
+    })
 
-    return cancelledShipment;
-  });
+    return assignment
+  })
 
-  return result;
-};
+  return result
+}
+
+export const markShipmentAsPaidForTesting = async (
+  shipmentId: string,
+  adminId: string,
+) => {
+  const shipment = await prisma.shipment.findFirst({
+    where: {
+      id: shipmentId,
+      deletedAt: null,
+    },
+  })
+
+  if (!shipment) {
+    throw new Error('Shipment not found')
+  }
+
+  if (shipment.status !== 'PENDING_PAYMENT') {
+    throw new Error('Only shipments pending payment can be marked as paid')
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedShipment = await tx.shipment.update({
+      where: { id: shipmentId },
+      data: {
+        status: 'PAID',
+      },
+    })
+
+    await tx.shipmentStatusHistory.create({
+      data: {
+        shipmentId,
+        changedById: adminId,
+        status: 'PAID',
+        note: 'Shipment marked as paid for development testing',
+      },
+    })
+
+    return updatedShipment
+  })
+
+  return result
+}
+
+export const makeShipmentReadyForAssignment = async (
+  shipmentId: string,
+  adminId: string,
+) => {
+  const shipment = await prisma.shipment.findFirst({
+    where: {
+      id: shipmentId,
+      deletedAt: null,
+    },
+  })
+
+  if (!shipment) {
+    throw new Error('Shipment not found')
+  }
+
+  if (shipment.status !== 'PAID') {
+    throw new Error('Only paid shipments can be made ready for assignment')
+  }
+
+  return updateShipmentStatus(
+    shipmentId,
+    'READY_FOR_ASSIGNMENT',
+    adminId,
+    'Shipment marked ready for courier assignment',
+  )
+}

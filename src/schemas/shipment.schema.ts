@@ -69,3 +69,11 @@ export const shipmentSearchSchema = z.object({
     limit: z.coerce.number().int().min(1).max(100).default(10),
   }),
 })
+
+export const assignShipmentSchema = z.object({
+  body: z.object({
+    courierId: z.string().uuid('Invalid courier ID'),
+  }),
+  params: z.object({}),
+  query: z.object({}),
+})
