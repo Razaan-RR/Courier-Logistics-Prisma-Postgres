@@ -276,3 +276,85 @@ export const searchMyShipments = async (
     },
   }
 }
+
+export const getMyShipmentHistory = async (
+  customerId: string,
+  shipmentId: string,
+) => {
+  const shipment = await prisma.shipment.findFirst({
+    where: {
+      id: shipmentId,
+      customerId,
+      deletedAt: null,
+    },
+  })
+
+  if (!shipment) {
+    throw new Error('Shipment not found')
+  }
+
+  return prisma.shipmentStatusHistory.findMany({
+    where: {
+      shipmentId,
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+    include: {
+      changedBy: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+        },
+      },
+    },
+  })
+}
+
+export const cancelMyShipment = async (
+  customerId: string,
+  shipmentId: string,
+) => {
+  const shipment = await prisma.shipment.findFirst({
+    where: {
+      id: shipmentId,
+      customerId,
+      deletedAt: null,
+    },
+  });
+
+  if (!shipment) {
+    throw new Error("Shipment not found");
+  }
+
+  if (shipment.status !== "PENDING_PAYMENT") {
+    throw new Error(
+      "Shipment can only be cancelled before payment",
+    );
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const cancelledShipment = await tx.shipment.update({
+      where: {
+        id: shipmentId,
+      },
+      data: {
+        status: "CANCELLED",
+      },
+    });
+
+    await tx.shipmentStatusHistory.create({
+      data: {
+        shipmentId,
+        changedById: customerId,
+        status: "CANCELLED",
+        note: "Shipment cancelled by customer",
+      },
+    });
+
+    return cancelledShipment;
+  });
+
+  return result;
+};

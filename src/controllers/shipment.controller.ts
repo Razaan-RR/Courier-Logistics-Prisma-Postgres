@@ -6,6 +6,8 @@ import {
   updateMyShipment,
   deleteMyShipment,
   searchMyShipments,
+  getMyShipmentHistory,
+  cancelMyShipment,
 } from '../services/shipment.service.js'
 import { errorResponse, successResponse } from '../utils/response.js'
 
@@ -124,6 +126,48 @@ export const search = async (req: Request, res: Response) => {
       error instanceof Error ? error.message : 'Failed to search shipments',
       [],
       500,
+    )
+  }
+}
+
+export const getHistory = async (req: Request, res: Response) => {
+  try {
+    const history = await getMyShipmentHistory(
+      req.user!.id,
+      req.params.id as string,
+    )
+
+    return successResponse(
+      res,
+      'Shipment history retrieved successfully',
+      history,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error
+        ? error.message
+        : 'Failed to retrieve shipment history',
+      [],
+      404,
+    )
+  }
+}
+
+export const cancel = async (req: Request, res: Response) => {
+  try {
+    const shipment = await cancelMyShipment(
+      req.user!.id,
+      req.params.id as string,
+    )
+
+    return successResponse(res, 'Shipment cancelled successfully', shipment)
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error ? error.message : 'Failed to cancel shipment',
+      [],
+      400,
     )
   }
 }

@@ -6,9 +6,11 @@ import {
   create,
   getAll,
   getOne,
+  update,
   remove,
   search,
-  update,
+  getHistory,
+  cancel,
 } from '../controllers/shipment.controller.js'
 import {
   createShipmentSchema,
@@ -43,6 +45,22 @@ router.get(
   authorize(UserRole.CUSTOMER),
   validate(shipmentSearchSchema),
   search,
+)
+
+router.get(
+  '/:id/history',
+  authenticate,
+  authorize(UserRole.CUSTOMER),
+  validate(shipmentIdSchema),
+  getHistory,
+)
+
+router.post(
+  '/:id/cancel',
+  authenticate,
+  authorize(UserRole.CUSTOMER),
+  validate(shipmentIdSchema),
+  cancel,
 )
 
 router.get(
