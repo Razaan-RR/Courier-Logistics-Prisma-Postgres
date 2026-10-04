@@ -21,6 +21,11 @@ import {
   deliver,
   deliveryFailed,
   returnShipmentController,
+  getCourierAssigned,
+  getCourierCompleted,
+  getCourierShipment,
+  getCourierActive,
+  getCourierHistory,
 } from '../controllers/shipment.controller.js'
 import {
   createShipmentSchema,
@@ -56,6 +61,43 @@ router.get(
   authorize(UserRole.CUSTOMER),
   validate(shipmentSearchSchema),
   search,
+)
+
+router.get(
+  '/courier/assigned',
+  authenticate,
+  authorize(UserRole.COURIER),
+  getCourierAssigned,
+)
+
+router.get(
+  '/courier/completed',
+  authenticate,
+  authorize(UserRole.COURIER),
+  getCourierCompleted,
+)
+
+router.get(
+  '/courier/active',
+  authenticate,
+  authorize(UserRole.COURIER),
+  getCourierActive,
+)
+
+router.get(
+  '/courier/:id',
+  authenticate,
+  authorize(UserRole.COURIER),
+  validate(shipmentIdSchema),
+  getCourierShipment,
+)
+
+router.get(
+  '/courier/:id/history',
+  authenticate,
+  authorize(UserRole.COURIER),
+  validate(shipmentIdSchema),
+  getCourierHistory,
 )
 
 router.post(

@@ -932,3 +932,184 @@ export const returnShipment = async (shipmentId: string, courierId: string) => {
     'Shipment returned after delivery failure',
   )
 }
+
+export const getCourierAssignedShipments = async (courierId: string) => {
+  return prisma.deliveryAssignment.findMany({
+    where: {
+      courierId,
+      status: {
+        in: ['PENDING', 'ACCEPTED'],
+      },
+      shipment: {
+        deletedAt: null,
+      },
+    },
+    orderBy: {
+      assignedAt: 'desc',
+    },
+    include: {
+      shipment: {
+        include: {
+          pickupAddress: true,
+          deliveryAddress: true,
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  })
+}
+
+export const getCourierCompletedShipments = async (courierId: string) => {
+  return prisma.deliveryAssignment.findMany({
+    where: {
+      courierId,
+      status: 'COMPLETED',
+      shipment: {
+        deletedAt: null,
+      },
+    },
+    orderBy: {
+      completedAt: 'desc',
+    },
+    include: {
+      shipment: {
+        include: {
+          pickupAddress: true,
+          deliveryAddress: true,
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  })
+}
+
+export const getCourierActiveShipments = async (courierId: string) => {
+  return prisma.deliveryAssignment.findMany({
+    where: {
+      courierId,
+      status: 'ACCEPTED',
+      shipment: {
+        deletedAt: null,
+        status: {
+          in: [
+            'COURIER_ACCEPTED',
+            'PICKED_UP',
+            'IN_TRANSIT',
+            'OUT_FOR_DELIVERY',
+            'DELIVERY_FAILED',
+          ],
+        },
+      },
+    },
+    orderBy: {
+      updatedAt: 'desc',
+    },
+    include: {
+      shipment: {
+        include: {
+          pickupAddress: true,
+          deliveryAddress: true,
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  })
+}
+
+export const getCourierShipmentById = async (
+  courierId: string,
+  shipmentId: string,
+) => {
+  const assignment = await prisma.deliveryAssignment.findFirst({
+    where: {
+      courierId,
+      shipmentId,
+      status: {
+        in: ['PENDING', 'ACCEPTED', 'COMPLETED'],
+      },
+      shipment: {
+        deletedAt: null,
+      },
+    },
+    include: {
+      shipment: {
+        include: {
+          pickupAddress: true,
+          deliveryAddress: true,
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (!assignment) {
+    throw new Error('Shipment not found in your assignments')
+  }
+
+  return assignment
+}
+
+export const getCourierShipmentHistory = async (
+  courierId: string,
+  shipmentId: string,
+) => {
+  const assignment = await prisma.deliveryAssignment.findFirst({
+    where: {
+      courierId,
+      shipmentId,
+      shipment: {
+        deletedAt: null,
+      },
+    },
+  })
+
+  if (!assignment) {
+    throw new Error('Shipment not found in your assignments')
+  }
+
+  return prisma.shipmentStatusHistory.findMany({
+    where: {
+      shipmentId,
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+    include: {
+      changedBy: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+        },
+      },
+    },
+  })
+}

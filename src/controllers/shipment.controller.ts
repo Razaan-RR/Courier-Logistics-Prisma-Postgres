@@ -18,6 +18,11 @@ import {
   deliverShipment,
   markShipmentDeliveryFailed,
   returnShipment,
+  getCourierAssignedShipments,
+  getCourierCompletedShipments,
+  getCourierActiveShipments,
+  getCourierShipmentById,
+  getCourierShipmentHistory,
 } from '../services/shipment.service.js'
 import { errorResponse, successResponse } from '../utils/response.js'
 
@@ -390,6 +395,115 @@ export const returnShipmentController = async (req: Request, res: Response) => {
       error instanceof Error ? error.message : 'Failed to return shipment',
       [],
       400,
+    )
+  }
+}
+
+export const getCourierAssigned = async (req: Request, res: Response) => {
+  try {
+    const assignments = await getCourierAssignedShipments(req.user!.id)
+
+    return successResponse(
+      res,
+      'Courier assigned shipments retrieved successfully',
+      assignments,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error
+        ? error.message
+        : 'Failed to retrieve assigned shipments',
+      [],
+      500,
+    )
+  }
+}
+
+export const getCourierCompleted = async (req: Request, res: Response) => {
+  try {
+    const assignments = await getCourierCompletedShipments(req.user!.id)
+
+    return successResponse(
+      res,
+      'Courier completed shipments retrieved successfully',
+      assignments,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error
+        ? error.message
+        : 'Failed to retrieve completed shipments',
+      [],
+      500,
+    )
+  }
+}
+
+export const getCourierActive = async (req: Request, res: Response) => {
+  try {
+    const assignments = await getCourierActiveShipments(req.user!.id)
+
+    return successResponse(
+      res,
+      'Courier active shipments retrieved successfully',
+      assignments,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error
+        ? error.message
+        : 'Failed to retrieve active shipments',
+      [],
+      500,
+    )
+  }
+}
+
+export const getCourierShipment = async (req: Request, res: Response) => {
+  try {
+    const shipment = await getCourierShipmentById(
+      req.user!.id,
+      req.params.id as string,
+    )
+
+    return successResponse(
+      res,
+      'Courier shipment retrieved successfully',
+      shipment,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error ? error.message : 'Failed to retrieve shipment',
+      [],
+      404,
+    )
+  }
+}
+
+export const getCourierHistory = async (req: Request, res: Response) => {
+  try {
+    const history = await getCourierShipmentHistory(
+      req.user!.id,
+      req.params.id as string,
+    )
+
+    return successResponse(
+      res,
+      'Courier shipment history retrieved successfully',
+      history,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error
+        ? error.message
+        : 'Failed to retrieve shipment history',
+      [],
+      404,
     )
   }
 }
