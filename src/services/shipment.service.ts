@@ -1,4 +1,5 @@
 import { prisma } from '../config/prisma.js'
+import { createAuditLog } from './audit.service.js'
 
 const BASE_CHARGE = 60
 const CHARGE_PER_KG = 20
@@ -66,9 +67,7 @@ export const updateShipmentStatus = async (
   const result = await prisma.$transaction(async (tx) => {
     const updatedShipment = await tx.shipment.update({
       where: { id: shipmentId },
-      data: {
-        status: nextStatus as any,
-      },
+      data: { status: nextStatus as any },
     })
 
     await tx.shipmentStatusHistory.create({
@@ -79,6 +78,22 @@ export const updateShipmentStatus = async (
         note,
       },
     })
+
+    await createAuditLog(
+      {
+        actorId: changedById,
+        action: 'SHIPMENT_STATUS_CHANGED',
+        entity: 'Shipment',
+        entityId: shipmentId,
+        oldData: {
+          status: shipment.status,
+        },
+        newData: {
+          status: nextStatus,
+        },
+      },
+      tx,
+    )
 
     return updatedShipment
   })
@@ -117,35 +132,55 @@ export const createShipment = async (
 
   const deliveryCharge = calculateDeliveryCharge(data.weight)
 
-  const shipment = await prisma.shipment.create({
-    data: {
-      trackingNumber: generateTrackingNumber(),
-      customerId,
-      pickupAddressId: data.pickupAddressId,
-      deliveryAddressId: data.deliveryAddressId,
-      recipientName: data.recipientName,
-      recipientPhone: data.recipientPhone,
-      packageType: data.packageType,
-      description: data.description,
-      weight: data.weight,
-      length: data.length,
-      width: data.width,
-      height: data.height,
-      deliveryCharge,
-      status: 'PENDING_PAYMENT',
-    },
+  const result = await prisma.$transaction(async (tx) => {
+    const shipment = await tx.shipment.create({
+      data: {
+        trackingNumber: generateTrackingNumber(),
+        customerId,
+        pickupAddressId: data.pickupAddressId,
+        deliveryAddressId: data.deliveryAddressId,
+        recipientName: data.recipientName,
+        recipientPhone: data.recipientPhone,
+        packageType: data.packageType,
+        description: data.description,
+        weight: data.weight,
+        length: data.length,
+        width: data.width,
+        height: data.height,
+        deliveryCharge,
+        status: 'PENDING_PAYMENT',
+      },
+    })
+
+    await tx.shipmentStatusHistory.create({
+      data: {
+        shipmentId: shipment.id,
+        changedById: customerId,
+        status: 'PENDING_PAYMENT',
+        note: 'Shipment created',
+      },
+    })
+
+    await createAuditLog(
+      {
+        actorId: customerId,
+        action: 'SHIPMENT_CREATED',
+        entity: 'Shipment',
+        entityId: shipment.id,
+        oldData: null,
+        newData: {
+          status: 'PENDING_PAYMENT',
+          trackingNumber: shipment.trackingNumber,
+          deliveryCharge: shipment.deliveryCharge,
+        },
+      },
+      tx,
+    )
+
+    return shipment
   })
 
-  await prisma.shipmentStatusHistory.create({
-    data: {
-      shipmentId: shipment.id,
-      changedById: customerId,
-      status: 'PENDING_PAYMENT',
-      note: 'Shipment created',
-    },
-  })
-
-  return shipment
+  return result
 }
 
 export const getMyShipments = async (
@@ -450,7 +485,9 @@ export const assignShipmentToCourier = async (
     })
 
     await tx.shipment.update({
-      where: { id: shipmentId },
+      where: {
+        id: shipmentId,
+      },
       data: {
         status: 'ASSIGNED',
       },
@@ -464,6 +501,25 @@ export const assignShipmentToCourier = async (
         note: `Shipment assigned to courier ${courier.name}`,
       },
     })
+
+    await createAuditLog(
+      {
+        actorId: adminId,
+        action: 'SHIPMENT_STATUS_CHANGED',
+        entity: 'Shipment',
+        entityId: shipmentId,
+        oldData: {
+          status: shipment.status,
+        },
+        newData: {
+          status: 'ASSIGNED',
+          courierId,
+          courierName: courier.name,
+          assignmentId: assignment.id,
+        },
+      },
+      tx,
+    )
 
     return assignment
   })
@@ -492,7 +548,9 @@ export const markShipmentAsPaidForTesting = async (
 
   const result = await prisma.$transaction(async (tx) => {
     const updatedShipment = await tx.shipment.update({
-      where: { id: shipmentId },
+      where: {
+        id: shipmentId,
+      },
       data: {
         status: 'PAID',
       },
@@ -506,6 +564,23 @@ export const markShipmentAsPaidForTesting = async (
         note: 'Shipment marked as paid for development testing',
       },
     })
+
+    await createAuditLog(
+      {
+        actorId: adminId,
+        action: 'SHIPMENT_STATUS_CHANGED',
+        entity: 'Shipment',
+        entityId: shipmentId,
+        oldData: {
+          status: shipment.status,
+        },
+        newData: {
+          status: 'PAID',
+          note: 'Development testing payment',
+        },
+      },
+      tx,
+    )
 
     return updatedShipment
   })
@@ -594,6 +669,24 @@ export const acceptShipmentAssignment = async (
         note: 'Shipment assignment accepted by courier',
       },
     })
+
+    await createAuditLog(
+      {
+        actorId: courierId,
+        action: 'SHIPMENT_STATUS_CHANGED',
+        entity: 'Shipment',
+        entityId: shipmentId,
+        oldData: {
+          status: assignment.shipment.status,
+          assignmentStatus: assignment.status,
+        },
+        newData: {
+          status: 'COURIER_ACCEPTED',
+          assignmentStatus: 'ACCEPTED',
+        },
+      },
+      tx,
+    )
 
     return updatedAssignment
   })
@@ -756,6 +849,24 @@ export const deliverShipment = async (
         note: 'Shipment delivered successfully',
       },
     })
+
+    await createAuditLog(
+      {
+        actorId: courierId,
+        action: 'SHIPMENT_STATUS_CHANGED',
+        entity: 'Shipment',
+        entityId: shipmentId,
+        oldData: {
+          status: assignment.shipment.status,
+          assignmentStatus: assignment.status,
+        },
+        newData: {
+          status: 'DELIVERED',
+          assignmentStatus: 'COMPLETED',
+        },
+      },
+      tx,
+    )
 
     return updatedShipment
   })
