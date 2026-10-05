@@ -36,6 +36,14 @@ export const stripeWebhook = async (req: Request, res: Response) => {
       const paymentId = session.metadata?.paymentId
       const shipmentId = session.metadata?.shipmentId
 
+      if (session.payment_status !== 'paid') {
+        return res.status(200).json({
+          success: true,
+          received: true,
+          message: 'Checkout completed but payment is not confirmed',
+        })
+      }
+
       if (!paymentId || !shipmentId) {
         return res.status(400).json({
           success: false,

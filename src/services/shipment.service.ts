@@ -461,6 +461,18 @@ export const assignShipmentToCourier = async (
     )
   }
 
+  const successfulPayment = await prisma.payment.findFirst({
+    where: {
+      shipmentId,
+      status: 'SUCCESS',
+      provider: 'STRIPE',
+    },
+  })
+
+  if (!successfulPayment) {
+    throw new Error('Successful Stripe payment not found for this shipment')
+  }
+
   const courier = await prisma.user.findFirst({
     where: {
       id: courierId,
@@ -526,6 +538,7 @@ export const assignShipmentToCourier = async (
 
   return result
 }
+
 
 export const markShipmentAsPaidForTesting = async (
   shipmentId: string,
@@ -607,6 +620,18 @@ export const makeShipmentReadyForAssignment = async (
     throw new Error('Only paid shipments can be made ready for assignment')
   }
 
+  const successfulPayment = await prisma.payment.findFirst({
+    where: {
+      shipmentId,
+      status: 'SUCCESS',
+      provider: 'STRIPE',
+    },
+  })
+
+  if (!successfulPayment) {
+    throw new Error('Successful Stripe payment not found for this shipment')
+  }
+
   return updateShipmentStatus(
     shipmentId,
     'READY_FOR_ASSIGNMENT',
@@ -614,6 +639,7 @@ export const makeShipmentReadyForAssignment = async (
     'Shipment marked ready for courier assignment',
   )
 }
+
 
 export const acceptShipmentAssignment = async (
   shipmentId: string,

@@ -17,19 +17,44 @@ export const createStripePayment = async (
     throw new Error('Shipment not found')
   }
 
-  if (!['PENDING_PAYMENT'].includes(shipment.status)) {
+  if (shipment.status !== 'PENDING_PAYMENT') {
     throw new Error('Payment cannot be created for this shipment')
   }
 
   const existingPayment = await prisma.payment.findFirst({
     where: {
       shipmentId,
+      customerId,
+      provider: 'STRIPE',
       status: 'SUCCESS',
     },
   })
 
   if (existingPayment) {
     throw new Error('Shipment has already been paid')
+  }
+
+  const existingPendingPayment = await prisma.payment.findFirst({
+    where: {
+      shipmentId,
+      customerId,
+      provider: 'STRIPE',
+      status: 'PENDING',
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  })
+
+  if (existingPendingPayment?.paymentUrl) {
+    return {
+      paymentId: existingPendingPayment.id,
+      shipmentId: shipment.id,
+      amount: Number(existingPendingPayment.amount),
+      currency: existingPendingPayment.currency,
+      status: existingPendingPayment.status,
+      paymentUrl: existingPendingPayment.paymentUrl,
+    }
   }
 
   const amount = Number(shipment.deliveryCharge)
@@ -72,7 +97,9 @@ export const createStripePayment = async (
   })
 
   await prisma.payment.update({
-    where: { id: payment.id },
+    where: {
+      id: payment.id,
+    },
     data: {
       paymentUrl: session.url,
     },
