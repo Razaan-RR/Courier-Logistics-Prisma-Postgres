@@ -129,17 +129,29 @@ export const refreshAccessToken = async (refreshToken: string) => {
     throw new Error('Invalid or expired refresh token')
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+  })
+
+  if (!user || user.deletedAt || user.status !== 'ACTIVE') {
+    throw new Error('User account is unavailable')
+  }
+
   const accessToken = generateAccessToken({
-    userId: payload.userId,
-    role: (
-      await prisma.user.findUniqueOrThrow({
-        where: { id: payload.userId },
-      })
-    ).role,
+    userId: user.id,
+    role: user.role,
   })
 
   return {
     accessToken,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      status: user.status,
+    },
   }
 }
 

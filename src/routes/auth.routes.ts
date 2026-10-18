@@ -23,9 +23,9 @@ router.post('/register', validate(registerSchema), register)
 
 router.post('/login', validate(loginSchema), login)
 
-router.post('/refresh-token', validate(refreshTokenSchema), refreshToken)
+router.post('/refresh-token', refreshToken)
 
-router.post('/logout', validate(logoutSchema), logout)
+router.post('/logout', logout)
 
 router.post(
   '/change-password',
