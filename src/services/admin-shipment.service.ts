@@ -373,3 +373,33 @@ export const getAdminActiveShipments = async (options: {
     },
   }
 }
+
+export const getAdminDashboardStats = async () => {
+  const [totalShipments, inTransit, delivered, pending] =
+    await prisma.$transaction([
+      prisma.shipment.count({
+        where: { deletedAt: null },
+      }),
+      prisma.shipment.count({
+        where: { deletedAt: null, status: 'IN_TRANSIT' },
+      }),
+      prisma.shipment.count({
+        where: { deletedAt: null, status: 'DELIVERED' },
+      }),
+      prisma.shipment.count({
+        where: {
+          deletedAt: null,
+          status: {
+            in: ['PENDING_PAYMENT', 'PAID', 'READY_FOR_ASSIGNMENT'],
+          },
+        },
+      }),
+    ])
+
+  return {
+    totalShipments,
+    inTransit,
+    delivered,
+    pending,
+  }
+}

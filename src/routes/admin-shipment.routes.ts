@@ -14,6 +14,7 @@ import {
   getCancelled,
   getCouriers,
   getCourierShipments,
+  getDashboardStats,
 } from '../controllers/admin-shipment.controller.js'
 
 import {
@@ -64,5 +65,7 @@ router.get(
   ),
   getCourierShipments,
 )
+
+router.get('/dashboard/stats', getDashboardStats)
 
 export default router

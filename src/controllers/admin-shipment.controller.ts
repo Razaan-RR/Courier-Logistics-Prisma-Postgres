@@ -8,6 +8,7 @@ import {
   getAdminCouriers,
   getAdminCourierShipments,
   getAdminActiveShipments,
+  getAdminDashboardStats,
 } from '../services/admin-shipment.service.js'
 
 import { successResponse, errorResponse } from '../utils/response.js'
@@ -252,6 +253,31 @@ export const getCourierShipments = async (req: Request, res: Response) => {
         : 'Failed to retrieve courier shipments',
       [],
       404,
+    )
+  }
+}
+
+
+export const getDashboardStats = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const stats = await getAdminDashboardStats()
+
+    return successResponse(
+      res,
+      'Admin dashboard statistics retrieved successfully',
+      stats,
+    )
+  } catch (error) {
+    return errorResponse(
+      res,
+      error instanceof Error
+        ? error.message
+        : 'Failed to retrieve dashboard statistics',
+      [],
+      500,
     )
   }
 }
