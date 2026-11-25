@@ -2,7 +2,10 @@ import express from 'express'
 
 import cors from 'cors'
 
-import * as helmetModule from 'helmet'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const helmet = require('helmet') as typeof import('helmet').default
 
 import { rateLimit } from 'express-rate-limit'
 
@@ -13,8 +16,6 @@ import apiRouter from './routes/index.js'
 import { stripeWebhook } from './controllers/payment-webhook.controller.js'
 
 import cookieParser from 'cookie-parser'
-
-const helmet = helmetModule.default
 
 const app = express()
 
