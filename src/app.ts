@@ -2,7 +2,7 @@ import express from 'express'
 
 import cors from 'cors'
 
-import helmet from 'helmet'
+import * as helmetModule from 'helmet'
 
 import { rateLimit } from 'express-rate-limit'
 
@@ -13,6 +13,8 @@ import apiRouter from './routes/index.js'
 import { stripeWebhook } from './controllers/payment-webhook.controller.js'
 
 import cookieParser from 'cookie-parser'
+
+const helmet = helmetModule.default
 
 const app = express()
 
