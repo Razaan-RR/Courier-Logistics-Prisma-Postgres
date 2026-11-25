@@ -1,12 +1,13 @@
 import express from 'express';
 import cors from 'cors';
-import * as helmetModule from 'helmet';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const helmet = require('helmet');
 import { rateLimit } from 'express-rate-limit';
 import { errorHandler } from './middlewares/error.middleware.js';
 import apiRouter from './routes/index.js';
 import { stripeWebhook } from './controllers/payment-webhook.controller.js';
 import cookieParser from 'cookie-parser';
-const helmet = helmetModule.default;
 const app = express();
 app.use(cookieParser());
 app.use(helmet());
