@@ -1,3 +1,4 @@
+
 import express from 'express'
 
 import cors from 'cors'
@@ -18,6 +19,8 @@ import { stripeWebhook } from './controllers/payment-webhook.controller.js'
 import cookieParser from 'cookie-parser'
 
 const app = express()
+
+app.set('trust proxy', 1)
 
 app.use(cookieParser())
 
@@ -46,6 +49,9 @@ app.use(
     limit: 100,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
+    validate: {
+      forwardedHeader: false,
+    },
   }),
 )
 
